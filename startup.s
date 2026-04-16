@@ -1,20 +1,26 @@
+/* startup.s - System entry point and hardware initialization */
 .global _start
 _start:
-    /*LDR sp, =STACK_SIZE */
+    /* 1. Initialize Stack Pointer using the address from the linker script */
+    LDR sp, =_estack
 
-    LDR sp, =_end
-    /*LDR sp, =stack_top*/
+    /* 2. Clear BSS Section (Critical for initializing global variables to zero) */
+    LDR r0, =_sbss
+    LDR r1, =_ebss
+    MOV r2, #0
+bss_loop:
+    CMP r0, r1
+    STRLT r2, [r0], #4
+    BLT bss_loop
 
-    BL boot_main
+    /* 3. Branch to the C Entry Point (Renamed from boot_main) */
+    BL system_init
+
+    /* 4. Catch-all loop to prevent CPU runaway */
     B .
 
-
-
-// QEMU: UART0 is mapped: 0x101f1000
-// https://github.com/qemu/qemu/blob/master/hw/arm/versatilepb.c
+/* Helper for direct register writing if needed */
 .global s_print_uart0
 s_print_uart0:
     STR r1, [r0]
     BX lr
-
-
